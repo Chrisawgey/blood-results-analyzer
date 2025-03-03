@@ -8,6 +8,7 @@ function FileUpload() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [processingStage, setProcessingStage] = useState('');
+  const [progress, setProgress] = useState(0);
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
@@ -45,37 +46,77 @@ function FileUpload() {
     
     setIsLoading(true);
     setError('');
+    setProgress(0);
     
     try {
       // Step 1: Extract text from the image or PDF using OCR
       setProcessingStage('Extracting text from your document...');
+      setProgress(20);
+      
       const extractionResult = await extractTextFromImage(file);
       
       if (!extractionResult.success) {
         throw new Error(extractionResult.error || 'Failed to extract text from the document');
       }
       
+      setProgress(50);
+      
       // Step 2: Parse the extracted text into structured data
       setProcessingStage('Analyzing your blood test results...');
+      setProgress(70);
+      
       const parsedResults = parseBloodTestResults(extractionResult.text);
       
       // Store the results in sessionStorage
       const extractedData = {
         rawText: extractionResult.text,
-        parsedResults: parsedResults
+        parsedResults: parsedResults,
+        timestamp: new Date().toISOString()
       };
       
+      setProgress(90);
       sessionStorage.setItem('extractedText', JSON.stringify(extractedData));
       
-      // Navigate to results page
-      navigate('/results');
+      // Log extraction success
+      console.log('Successfully extracted and parsed blood test data');
+      
+      setProgress(100);
+      
+      // Navigate to results page after a brief delay
+      setTimeout(() => {
+        navigate('/results');
+      }, 500);
+      
     } catch (err) {
       console.error('File processing error:', err);
-      setError('Error processing file: ' + err.message || 'Please try again with a clearer image or PDF.');
+      setError('Error processing file: ' + (err.message || 'Please try again with a clearer image or PDF.'));
     } finally {
       setIsLoading(false);
       setProcessingStage('');
     }
+  };
+
+  // Function to handle when user drops a file
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0];
+      
+      if (droppedFile.type === 'application/pdf' || droppedFile.type.startsWith('image/')) {
+        setFile(droppedFile);
+        setFileType(droppedFile.type === 'application/pdf' ? 'pdf' : 'image');
+        setError('');
+      } else {
+        setError('Please upload a PDF or image file.');
+      }
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   return (
@@ -86,17 +127,23 @@ function FileUpload() {
       {error && <div className="error-message">{error}</div>}
       
       <form onSubmit={handleSubmit}>
-        <div className="file-input-container">
+        <div 
+          className="file-drop-area"
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
           <input
             type="file"
             id="file-upload"
             onChange={handleFileChange}
             accept="image/*,.pdf"
             disabled={isLoading}
+            className="file-input"
           />
           <label htmlFor="file-upload" className="file-input-label">
-            {file ? file.name : 'Choose file'}
+            {file ? file.name : 'Choose a file or drag it here'}
           </label>
+          <p className="drag-text">Drag and drop a file here, or click to select</p>
         </div>
         
         {file && (
@@ -110,7 +157,10 @@ function FileUpload() {
               />
             )}
             {fileType === 'pdf' && (
-              <p className="pdf-label">PDF Document</p>
+              <div className="pdf-preview">
+                <i className="pdf-icon"></i>
+                <p className="pdf-label">PDF Document</p>
+              </div>
             )}
           </div>
         )}
@@ -120,14 +170,20 @@ function FileUpload() {
           className="btn-primary"
           disabled={!file || isLoading}
         >
-          {isLoading ? processingStage || 'Processing...' : 'Analyze Results'}
+          {isLoading ? 'Processing...' : 'Analyze Results'}
         </button>
       </form>
       
       {isLoading && (
         <div className="processing-status">
-          <div className="loading-spinner"></div>
+          <div className="progress-bar">
+            <div 
+              className="progress-fill" 
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
           <p>{processingStage}</p>
+          <div className="loading-spinner"></div>
         </div>
       )}
       
@@ -140,6 +196,15 @@ function FileUpload() {
           <li>PDF files from lab portals work best</li>
           <li>Take the photo straight-on to avoid distortion</li>
         </ul>
+      </div>
+      
+      <div className="upload-privacy">
+        <h3>Privacy Information</h3>
+        <p>
+          Your data is processed securely. We use Google Cloud Vision API for text extraction 
+          and OpenAI for analysis. Your data is not stored permanently and is only used 
+          to provide you with insights about your test results.
+        </p>
       </div>
     </div>
   );

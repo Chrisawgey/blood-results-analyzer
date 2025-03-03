@@ -1,24 +1,31 @@
-import logo from './logo.svg';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Header from './components/Header';
+import Dashboard from './components/Dashboard';
+import ProfileForm from './components/ProfileForm';
+import FileUpload from './components/FileUpload';
+import ResultsAnalysis from './components/ResultsAnalysis';
 import './App.css';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div className="App">
+        <Header />
+        <div className="container">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/profile" element={<ProfileForm />} />
+            <Route path="/upload" element={<FileUpload />} />
+            <Route path="/results" element={<ResultsAnalysis />} />
+          </Routes>
+        </div>
+        <footer className="app-footer">
+          <p>&copy; {new Date().getFullYear()} Blood Results Analyzer. All rights reserved.</p>
+          <p className="disclaimer">This app is for educational and informational purposes only.</p>
+        </footer>
+      </div>
+    </Router>
   );
 }
 
